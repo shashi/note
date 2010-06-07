@@ -1,10 +1,12 @@
 h1. note
+
 @note@ is a note maker script written in bash.
 it lets you write notes in your favorite editor,
 categorize & maintain them in a git repository
 automatically, and run them through jekyll.
 
 h2. extend
+
 @note@ is completely extensible with a plugin
 system and 3-way configuration mechanism (env
 variables, .noterc file and cli arguments)
@@ -16,6 +18,7 @@ plugins/ directory contains some plugins for
 you to try out.
 
 h2. usage
+
 run the @note@ to get usage and a list of
 available options read sample.noterc or
 docs/CONFIGURATION to see how to configure
@@ -32,4 +35,5 @@ freenode irc channel #note.
 free to suggest one or more yourself)
 
 h2. license
+
 see docs/LICENSE
