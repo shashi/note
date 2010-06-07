@@ -1,0 +1,93 @@
+EXTEND
+======
+
+note has a humble plugin system which is explained below
+when something interesting happens during the execution of
+the core code, a "hook" is run, when a hook is run, all
+functions defined in the current environment, whose names
+are of the form:
+    <prefix_name>_on_<hook_name>
+are run, the functions have access to the all environment
+variables and their exit statuses sometimes affect the code
+flow. Sometimes these functions are called with arguments.
+
+Here is a simple hello world plugin that greets the user if
+'-h' command line option is set.
+
+reg_opt HELLO  h   ""      "Invoke hello world plugin"
+    # this registers option -h, HELLO is set to "true" if it
+    # is set (use h: instead to accept a value for the option)
+    # "" is the default value and the last argument is
+    # the description/usage for the option
+
+# use hook initialize_env
+hello_on_initialize_env () {
+    # $HELLO will have value "true" if -h cli option was set
+    if [ $HELLO ]; then
+        echo "HELLOW, WARLD!"
+    fi
+}
+
+plugins can be loaded using the '.' command in ~/.noterc
+
+While reading the core code and looking for "run_hook"
+statements is the best documentations you can get, here is a
+list of all the hooks.
+
+    trap_int
+    initialize $@
+    start_reg_opt
+    end_reg_opt
+    start_run_conf_block
+    end_run_conf_block
+    start_parse_opts
+    end_parse_opts
+    initialize_env $@
+    start_make_dir
+    end_make_dir
+    finalize_env $@
+    make_frontmatter
+    start_edit
+    end_edit
+    start_git
+    start_gitignore_priv_dir
+    end_gitignore_priv_dir
+    start_init_repo
+    end_init_repo
+    start_init_priv_repo
+    end_init_priv_repo
+    start_git_change
+    start_git_commit
+    end_git_commit
+    start_git_amend
+    end_git_amend
+    end_git_change
+    end_git
+    start_jekyll
+    start_run_jekyll
+    end_run_jekyll
+    end_jekyll
+    finalize
+
+What more, your plugin can further create hooks for other
+plugins to use just by running `run_hook <hookname>`!
+
+Plugin ideas
+============
+  - word
+    given a word, fetch its meaning, etymology and usage
+    and allow user to write a note about it
+  - song
+    given the name of a song, fetch its lyrics and allow
+    the user to write a note on it
+  - presentation
+    let the user make presentations using jekyll layouts
+    and slippy HTML presentations:
+        http://github.com/Seldaek/slippy
+  - webpage
+    archive a web page, internally link to it and write a
+    note on it.
+  - push to github
+    push the repository to github for display as
+    "github pages"
+

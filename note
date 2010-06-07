@@ -1,0 +1,298 @@
+#!/bin/bash
+#
+# note - the extensible note maker - v 0.1b
+#   note lets you make notes, organize them in a
+#   git repository and run your notes through
+#   jekyll to create static html files.
+#
+#   note is written in bash and is easily extendable
+#   with its simple but powerful plugin system.
+#   the docs/ directory is great and all that but
+#   the code here is the best documentation you'll
+#   get. Dive in and hack on it. :)
+#
+#   note is written by Shashi Gowda
+#      <connect2shashi@gmail.com>
+#   licensed under the GNU GPL version 3.
+#   see docs/LICENSE
+#
+
+USAGE="Usage: $0 [options] [category] url_slug"
+DEBUG=
+
+trap trap_int SIGINT
+
+# trap interrupt
+trap_int () {
+    exstat=$?
+    run_hook trap_int &&
+        echo_dbg "exiting with status $exstat" &&
+        echo "bye." &&
+        exit $exstat
+}
+
+# the humblest plugin system ever written
+run_hook ()
+{
+    local h_name=$1
+    shift
+    local res=true
+    # if any plugin returns an error code >0, return error code 1
+    # http://mywiki.wooledge.org/BashFAQ/024
+    declare -F | grep -o [a-zA-Z0-9_]*_on_${h_name}$ | {
+        while read fn; do
+            echo_dbg "[hook: $h_name] function plugged-in $fn."
+            $fn $@ || res=false
+        done
+
+        echo_dbg "executed hook $h_name. result: $res"
+        $res
+    }
+}
+
+optstring=          # options argument for getopts
+declare -a varnames # array of variable names
+
+# register option. (lots of over-smartness)
+# order of preference: command line arg, .noterc, default
+# TODO: do long arguments
+reg_opt ()
+{
+    echo_dbg "registering new option: $@"
+
+    optstring="$optstring$2"
+    varnames[${#varnames[@]}]=$1
+
+    # initialize to default value
+    # if not already set by .noterc
+    eval "$1=\${$1:=$3}"    # <---FIXME: ugly.
+
+    USAGE="$USAGE
+    -${2:0:1}		$4"
+}
+
+# debug output
+echo_dbg ()
+{
+    [ -z $DEBUG ] || echo "[debug] $@" >&2
+}
+
+# call this after .noterc has been loaded
+help_exit ()
+{
+    echo "$USAGE"
+    exit 1
+}
+
+# load ~/.noterc (overrides variables)
+[ -f "$HOME/.noterc" ] && . "$HOME/.noterc"
+
+run_hook initialize $@
+
+# Register commandline options
+#reg_opt VAR_NAME cli default_value  Description
+if run_hook start_reg_opt; then
+    reg_opt NOTE_PATH d: "$HOME/notes" 'Directory where notes are stored (jekyll is run here)'
+    reg_opt PRIVATE   p  ""             'Private note'
+    reg_opt NOTE_EDITOR e: "`git config core.editor`" 'Editor to use (default=git conig core.editor)'
+    reg_opt CONF_BLK  c: "default"      'Configuration block to use in .noterc'
+    reg_opt JEKYLL_BIN b: ""            'Path to Jekyll binary'
+    reg_opt DEBUG     v  ""             'Verbose mode'
+    reg_opt MARKDOWN  m: "textile"      'Markdown to use (default=textile)'
+    reg_opt dogit     g: "i"            'Git: y=commit, n=skip, a=amend, e=exit to shell, i=interactive'
+    reg_opt dojekyll  j: "i"            "Run jekyll when finished (y=run, n=don't, i=interactive)"
+
+    run_hook end_reg_opt
+fi
+
+# run the configuration function
+if run_hook start_run_conf_block; then
+    echo_dbg "running configuration block: conf_$CONF_BLK"
+    [ $CONF_BLK ] && "conf_$CONF_BLK" 2> /dev/null
+    run_hook end_run_conf_block
+fi
+
+# parse cli options and set the variables
+optsmapper="`echo $optstring | sed s/://g`"
+if run_hook start_parse_opts; then
+
+    echo_dbg "parsing cli options: $@
+        optstring=$optstring
+        optsmapper=$optsmapper
+        varnames=${varnames[@]}"
+
+    while getopts $optstring opt; do
+        [ $OPTARG ] || OPTARG=true
+        export ${varnames[$(( `expr index $optsmapper $opt`-1 ))]}="$OPTARG"
+    done
+
+    run_hook end_parse_opts
+fi
+
+run_hook initialize_env $@
+
+args=($@)
+slug=${args[$OPTIND]}
+category=${args[$(( $OPTIND-1 ))]}
+
+if [ -z $slug ]; then
+    slug=$category
+    # default_category is a .noterc config
+    category=${default_category:=notes}
+fi
+
+[ -z $slug ] && help_exit
+
+if [ ! -z $PRIVATE ]; then
+    [ -z $PRIV_DIR ] && PRIV_DIR=private
+    category="$PRIV_DIR/$category"    # add PRIV_DIR to the "list" of categories
+fi
+
+dir="$NOTE_PATH/_posts/$category"
+
+filepath="$dir/$(date +%Y-%m-%d)-$slug.$MARKDOWN"
+
+if run_hook start_make_dir && [ ! -d $dir ]; then
+    mkdir -p $dir
+    echo_dbg "created new directory: $dir"
+    run_hook end_make_dir
+fi
+
+$type=${type:=}
+$layout=${layout:=note}
+$author=${AUTHOR:"$(git config user.name) <$(git config user.email)>"}
+$time="$(date +%H:%M:%S\ %Z)"
+$categories="[$(echo $category | sed s:/:,\ :g)]"
+$permalink="/$category/$(date +%Y-%m)/$slug.html"
+$published=${published:=false}
+
+# give plugins a chance to manipulate metadata
+run_hook finalize_env $@
+
+# if this is a new file then write jekyll yaml front matter to it
+if [ ! -f $filepath ]; then
+    frontmatter="\
+title: $slug
+slug: $slug
+type: $type
+layout: $layout
+time: $time
+author: $author
+categories: $categories
+published: $published
+permalink: $permalink
+"
+    run_hook make_frontmatter &&
+        frontmatter="`printf "$frontmatter---\n"`"
+
+    # create the file
+    echo "$frontmatter" > $filepath
+fi
+
+# edit
+if run_hook start_edit; then
+    $NOTE_EDITOR $filepath
+
+    if run_hook end_edit; then
+        # if the last line is "screwit", screw it.
+        [ "`tail -1 $filepath`" == "screwit" ] &&
+            echo "Alright, screwing." && rm $filepath && exit 1
+    fi
+fi
+
+if run_hook start_git; then
+    if [ $dogit == "i" ]; then
+        printf "commit now? ([y]es/[n]o/[a]mend/sh[e]ll) "
+        read dogit
+    fi
+
+    cd $dir
+
+    # gitignore private directory
+    if run_hook start_gitignore_priv_dir; then
+        [ ! "`grep $PRIV_DIR $NOTE_PATH/.gitignore`" ] &&
+            echo "_posts/$PRIV_DIR/" >> $NOTE_PATH/.gitignore
+        run_hook end_gitignore_priv_dir
+    fi
+
+    # if not a git repository, initialize
+    if [ ! -d "$NOTE_PATH/.git" ] &&
+        run_hook start_init_repo; then
+            cd $NOTE_PATH
+            echo_dbg "Initializing git repository at $(pwd)"
+            git init
+            cd $dir
+        run_hook end_init_repo
+    fi
+
+    # initialize a seperate repo for private notes
+    if [ $PRIVATE ] && [ ! -d "$NOTE_PATH/_posts/$PRIV_DIR/.git" ] &&
+        run_hook start_init_priv_repo; then
+            cd "$NOTE_PATH/_posts/$PRIV_DIR"
+            echo_dbg "Initializing private git repository at $(pwd)"
+            git init
+            run_hook end_init_priv_repo
+    fi
+
+    # do what was asked for; commit or amend
+    if run_hook start_git_change; then
+        case "$dogit" in
+            y)
+                if run_hook start_git_commit; then
+                    git add $filepath
+                    git commit -a
+                    run_hook end_git_commit
+                fi
+            ;;
+            a)
+                if run_hook start_git_amend; then
+                    git add $filepath
+                    git commit -a
+                    run_hook end_git_amend
+                fi
+            ;;
+            e)
+                exec /bin/bash
+                exit 0
+            ;;
+        esac
+        run_hook end_git_change
+    fi
+
+    run_hook end_git
+fi
+
+# jekyll
+if run_hook start_jekyll; then
+
+    if [ $dojekyll == "i" ]; then
+        printf "run jekyll now? ([y]es/[n]o) "
+        read dojekyll
+    fi
+
+    if [ $dojekyll  == "y" ]; then
+        cd $NOTE_PATH
+
+        # fallback to `gem env gemdir` for path if jekyll isn't in path
+        if [ -z $JEKYLL_BIN ]; then
+            if [ -z "`which jekyll`" ]; then
+                JEKYLL_BIN="`gem env gemdir`/bin/jekyll"
+                [ ! -f $JEKYLL_BIN ] &&
+                    JEKYLL_BIN= &&
+                    echo "Jekyll is not installed?" >&2
+            else
+                JEKYLL_BIN="`which jekyll`"
+            fi
+        fi
+
+        if run_hook start_run_jekyll && [ ! -z $JEKYLL_BIN ]; then
+            echo_dbg "using $JEKYLL_BIN to run jekyll."
+            $JEKYLL_BIN
+            run_hook end_run_jekyll
+        fi
+    fi
+
+    run_hook end_jekyll
+fi
+
+run_hook finalize

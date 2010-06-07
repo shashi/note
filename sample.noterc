@@ -1,0 +1,76 @@
+# you can make changes to this file and place this in your
+# $HOME directory but note can run with zero configuration!
+
+# to use environment variable instead when it is set do:
+#   [ $ENV_VAR_NAME ] || ENV_VAR_NAME=value
+
+# path to notes directory, here's where jekyll is run
+NOTE_PATH=$HOME/notes/
+
+# subdirectory in NOTE_PATH where private notes are stored
+PRIV_DIR=private
+
+# editor leave it out to use git's editor instead
+NOTE_EDITOR="emacs22 -nw"
+
+# author
+AUTHOR=
+
+# markdown (file extension)
+MARKDOWN=textile
+
+# filename pattern (escaped, will be evaluated)
+FILE_NAME_PATTERN="$(date +%Y-%m-%d\ Z)-\$SLUG.\$MARKDOWN"
+
+# default permalink style
+PERMALINK_STYLE=
+
+# verbosity level
+DEBUG=true
+
+# global configuration overriden by a
+# config block or command line options
+NOTE_PATH=$HOME/notes/
+
+# you can have several configurations
+# in conf_<name> blocks like this one
+# conf_default block is run by default
+conf_default () {
+    # disable verbosity by default
+    DEBUG=
+    PRIVATE=true
+}
+
+# if i use "-c dev" option, this will be run
+# instead of conf_default
+conf_dev () {
+    DEBUG=true
+}
+
+# PLUGINS:
+# if you have plugin files, you can include them here
+#       . /path/to/my/plugin.sh
+# notice the space after the '.'
+
+# Here is a simple hello world plugin
+
+# register a command line option.
+# (it is good manners to do this in the end_reg_opt hook instead
+
+reg_opt HELLO  h   ""      "Invoke hello world plugin"
+
+# hooks are hung on to by plugins, when
+# an event occurs, the plugin functions
+# hanging by the hook are executed ;)
+# name your function <pluginname>_on_<hookname>
+# to hang on to a hook named <hookname>
+# see docs/HOOKS for a list of hooks
+# the following example function clings on to
+# the "initialize_env" hook:
+
+hello_on_initialize_env () {
+    # $HELLO will have value "true" if -h cli option was set
+    if [ $HELLO ]; then
+        echo "HELLOW, WARLD!"
+    fi
+}

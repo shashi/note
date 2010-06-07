@@ -1,0 +1,27 @@
+CONFIGURATION
+=============
+
+There are many environment variables note uses to configure itself
+plugins can have their own set of configuration variables too.
+
+to get a list of all command line options just run note with no
+arguments.
+
+VARIABLE NAME   DEFAULT VALUE         CLI    DESCRITPION
+===================================================================
+NOTE_PATH       "$HOME/notes"         -d     jekyll is run here
+PRIVATE         ""                    -p     make this note private
+NOTE_EDITOR     [git config]          -e     editor to use
+CONF_BLK        "default"             -c     .noterc configuration block
+JEKYLL_BIN      "jekyll"              -b     jekyll binary
+DEBUG           ""                    -v     debug level verbosity
+MARKDOWN        "textile"             -m     markdown (file extension)
+dogit           "i"                   -g     how to run git y/n/a/i
+dojekyll        "i"                   -j     how to run jekyll
+default_category "notes"                     default category
+layout          "note"                       default layout
+AUTHOR          [git config]                 author
+published       "false"                      publish note by default?
+
+you can manipulate any of the many environment variables that note uses
+internally using one or more of the "hooks" (see EXTEND for more)
