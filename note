@@ -98,7 +98,7 @@ if run_hook start_reg_opt; then
     reg_opt CONF_BLK  c: "default"      'Configuration block to use in .noterc'
     reg_opt JEKYLL_BIN b: ""            'Path to Jekyll binary'
     reg_opt DEBUG     v  ""             'Verbose mode'
-    reg_opt MARKDOWN  m: "textile"      'Markdown to use (default=textile)'
+    reg_opt fileext  m: "textile"      'Markdown to use (default=textile)'
     reg_opt dogit     g: "i"            'Git: y=commit, n=skip, a=amend, e=exit to shell, i=interactive'
     reg_opt dojekyll  j: "i"            "Run jekyll when finished (y=run, n=don't, i=interactive)"
 
@@ -150,7 +150,7 @@ fi
 
 dir="$NOTE_PATH/$category/_posts"
 
-filepath="$dir/$(date +%Y-%m-%d)-$slug.$MARKDOWN"
+filepath="$dir/$(date +%Y-%m-%d)-$slug.$fileext"
 
 if run_hook start_make_dir && [ ! -d $dir ]; then
     mkdir -p $dir

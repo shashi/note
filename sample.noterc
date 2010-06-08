@@ -13,8 +13,8 @@ PRIV_DIR=private
 # editor leave it out to use git's editor instead
 NOTE_EDITOR="emacs22 -nw"
 
-# markdown (file extension)
-MARKDOWN=textile
+# file extension
+fileext=textile
 
 # default permalink style
 PERMALINK_STYLE=
