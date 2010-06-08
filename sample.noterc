@@ -5,7 +5,7 @@
 #   [ $ENV_VAR_NAME ] || ENV_VAR_NAME=value
 
 # path to notes directory, here's where jekyll is run
-NOTE_PATH=$HOME/notes/
+NOTE_PATH=$HOME/notes
 
 # subdirectory in NOTE_PATH where private notes are stored
 PRIV_DIR=private
@@ -13,24 +13,14 @@ PRIV_DIR=private
 # editor leave it out to use git's editor instead
 NOTE_EDITOR="emacs22 -nw"
 
-# author
-AUTHOR=
-
 # markdown (file extension)
 MARKDOWN=textile
-
-# filename pattern (escaped, will be evaluated)
-FILE_NAME_PATTERN="$(date +%Y-%m-%d\ Z)-\$SLUG.\$MARKDOWN"
 
 # default permalink style
 PERMALINK_STYLE=
 
 # verbosity level
-DEBUG=true
-
-# global configuration overriden by a
-# config block or command line options
-NOTE_PATH=$HOME/notes/
+DEBUG=
 
 # you can have several configurations
 # in conf_<name> blocks like this one
@@ -38,13 +28,21 @@ NOTE_PATH=$HOME/notes/
 conf_default () {
     # disable verbosity by default
     DEBUG=
-    PRIVATE=true
+    PRIVATE=
 }
 
 # if i use "-c dev" option, this will be run
 # instead of conf_default
 conf_dev () {
     DEBUG=true
+}
+
+conf_slides () {
+    DEBUG=
+    layout=slippy # jekyll layout to create presentations with slippy
+                  # http://github.com/Seldaek/slippy
+    # there are tons of these variables you can configure here
+    # read the code.
 }
 
 # PLUGINS:

@@ -148,7 +148,7 @@ if [ ! -z $PRIVATE ]; then
     category="$PRIV_DIR/$category"    # add PRIV_DIR to the "list" of categories
 fi
 
-dir="$NOTE_PATH/_posts/$category"
+dir="$NOTE_PATH/$category/_posts"
 
 filepath="$dir/$(date +%Y-%m-%d)-$slug.$MARKDOWN"
 
@@ -158,13 +158,12 @@ if run_hook start_make_dir && [ ! -d $dir ]; then
     run_hook end_make_dir
 fi
 
-$type=${type:=}
-$layout=${layout:=note}
-$author=${AUTHOR:"$(git config user.name) <$(git config user.email)>"}
-$time="$(date +%H:%M:%S\ %Z)"
-$categories="[$(echo $category | sed s:/:,\ :g)]"
-$permalink="/$category/$(date +%Y-%m)/$slug.html"
-$published=${published:=false}
+layout=${layout:=note}
+author=${AUTHOR:"$(git config user.name) <$(git config user.email)>"}
+time="$(date +%H:%M:%S\ %Z)"
+categories="[$(echo $category | sed s:/:,\ :g)]"
+permalink="/$category/$(date +%Y-%m)/$slug.html"
+published=${published:=false}
 
 # give plugins a chance to manipulate metadata
 run_hook finalize_env $@
@@ -172,9 +171,9 @@ run_hook finalize_env $@
 # if this is a new file then write jekyll yaml front matter to it
 if [ ! -f $filepath ]; then
     frontmatter="\
+---
 title: $slug
 slug: $slug
-type: $type
 layout: $layout
 time: $time
 author: $author
@@ -211,7 +210,7 @@ if run_hook start_git; then
     # gitignore private directory
     if run_hook start_gitignore_priv_dir; then
         [ ! "`grep $PRIV_DIR $NOTE_PATH/.gitignore`" ] &&
-            echo "_posts/$PRIV_DIR/" >> $NOTE_PATH/.gitignore
+            echo "$PRIV_DIR" >> $NOTE_PATH/.gitignore
         run_hook end_gitignore_priv_dir
     fi
 
@@ -226,9 +225,9 @@ if run_hook start_git; then
     fi
 
     # initialize a seperate repo for private notes
-    if [ $PRIVATE ] && [ ! -d "$NOTE_PATH/_posts/$PRIV_DIR/.git" ] &&
+    if [ $PRIVATE ] && [ ! -d "$NOTE_PATH/$PRIV_DIR/.git" ] &&
         run_hook start_init_priv_repo; then
-            cd "$NOTE_PATH/_posts/$PRIV_DIR"
+            cd "$NOTE_PATH/$PRIV_DIR"
             echo_dbg "Initializing private git repository at $(pwd)"
             git init
             run_hook end_init_priv_repo

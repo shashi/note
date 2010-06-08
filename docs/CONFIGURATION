@@ -20,7 +20,6 @@ dogit           "i"                   -g     how to run git y/n/a/i
 dojekyll        "i"                   -j     how to run jekyll
 default_category "notes"                     default category
 layout          "note"                       default layout
-AUTHOR          [git config]                 author
 published       "false"                      publish note by default?
 
 you can manipulate any of the many environment variables that note uses
